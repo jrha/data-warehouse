@@ -12,7 +12,6 @@ group = parser.add_mutually_exclusive_group()
 group.add_argument('-d','--distributionofx',nargs=1,metavar='path', type=str, help="Produces a frequency distribution of all the values within 'path' (as json formatted string if --prettyprint not used)")
 group.add_argument('-f','--frequencyofx', nargs=2, metavar=('path', 'value'), help="Produces a list of machines, all of which have 'value' within 'path' (as json formatted string if --prettyprint not used)")
 parser.add_argument('-p','--prettyprint', action='store_true',help='Makes general outputs readable on the command line, not recommended for use as part of API')
-parser.add_argument('-n','--noindex', action='store_true', default=False, help='Forces the program not to index any profiles, this will increase speed but may not yield accurate results. (NB.is neccesary if profiles are not stored locally)')
 parser.add_argument('--debug', action='store_true', default=False)
 args = parser.parse_args()
 
@@ -27,8 +26,6 @@ config.read('/etc/quattor-datawarehouse/dw.conf')
 
 logger.debug("qdw: read config %s" % (config))
 
-dwfuncts.BATCHSIZE = config.getint('dw', 'batchsize') #size of each bulk indexing operation (no.profiles)
-dwfuncts.SINGLEINDEXLIMIT = config.getint('dw', 'singleindexlimit') #number of profiles before bulk indexing takes over from single
 dwfuncts.INDEX = config.get('dw', 'index')
 dwfuncts.TYPE = config.get('dw', 'type')
 dwfuncts.ADDRESS = config.get('dw', 'address') #address of elastic search server
@@ -38,14 +35,6 @@ server = pyes.es.ES(server="%s:%s" % (dwfuncts.ADDRESS, dwfuncts.PORT)) #initial
 
 if args.debug:
     logger.setLevel(logging.DEBUG)
-
-if not(args.noindex):
-    if not os.path.isdir('../Profiles/.git'):
-        logger.debug("qdw: Initialising index and populating git repo")
-        dwfuncts.indexinstall(logger, server) #inits index and populates
-    else:
-        logger.debug("qdw: Existing index found, updating")
-        dwfuncts.updater(logger, server) #updates the index
 
 if (args.distributionofx is not(None)):
     logger.debug("qdw: Requested distribution")
